@@ -1,139 +1,53 @@
-// Elementos da página que serão alterados pelo JavaScript.
-const quiz = document.querySelector("#quiz");
-const progresso = document.querySelector("#progresso");
-const nivel = document.querySelector("#nivel");
-const pergunta = document.querySelector("#pergunta");
-const alternativas = document.querySelector("#alternativas");
-const mensagem = document.querySelector("#mensagem");
-const resultado = document.querySelector("#resultado");
-const textoResultado = document.querySelector("#texto-resultado");
-const botaoReiniciar = document.querySelector("#reiniciar");
+const caixaPerguntas = document.querySelector(".caixa-perguntas");
+const caixaAlternativas = document.querySelector(".caixa-alternativas");
+const resultado = document.querySelector(".resultado");
+let perguntas = []; 
+let atual = 0; 
+let historiaFinal = "";  
 
-
-// Variáveis que controlam o andamento do quiz.
-let perguntas = [];
-let atual = 0;
-let pontos = 0;
-
-
-// Lê as perguntas armazenadas no arquivo JSON.
-async function carregarPerguntas() {
+async function carregarPerguntas() { 
     try {
         const resposta = await fetch("perguntas.json");
-
-
         if (!resposta.ok) {
-            throw new Error("Não foi possível carregar o arquivo JSON.");
+            throw new Error("Erro ao carregar o arquivo JSON.");
         }
-
-
-        perguntas = await resposta.json();
-        mostrarPergunta();
-    } catch (erro) {
-        progresso.textContent = erro.message;
-        pergunta.textContent =
-            "Abra o projeto com o Live Server ou outro servidor local.";
+        perguntas = await resposta.json(); 
+        mostraPergunta(); 
+    } catch (erro) {  
+        caixaPerguntas.textContent =
+            "Não foi possível carregar as perguntas.";
+        console.error(erro);
     }
 }
 
-
-// Mostra uma pergunta e cria seus botões de alternativas.
-function mostrarPergunta() {
+function mostraPergunta() { 
+    if (atual >= perguntas.length) {
+        mostraResultado();
+        return;
+    }
+    caixaAlternativas.innerHTML = "";
     const perguntaAtual = perguntas[atual];
-
-
-    progresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
-    nivel.textContent = `Nível: ${perguntaAtual.nivel}`;
-    pergunta.textContent = perguntaAtual.enunciado;
-    alternativas.innerHTML = "";
-    mensagem.textContent = "";
-
-
-    perguntaAtual.alternativas.forEach((alternativa, indice) => {
-        const botao = document.createElement("button");
-        botao.textContent = alternativa;
-        botao.addEventListener("click", () => verificarResposta(indice, botao));
-        alternativas.appendChild(botao);
-    });
+    caixaPerguntas.textContent = perguntaAtual.enunciado;
+    mostraAlternativas(perguntaAtual);
 }
 
-
-// Verifica a alternativa escolhida pelo usuário.
-function verificarResposta(indiceEscolhido, botaoEscolhido) {
-    const perguntaAtual = perguntas[atual];
-    const botoes = alternativas.querySelectorAll("button");
-
-
-    botoes.forEach((botao) => {
-        botao.disabled = true;
-    });
-
-
-    if (indiceEscolhido === perguntaAtual.correta) {
-        pontos++;
-        botaoEscolhido.classList.add("correta");
-        mensagem.textContent = "Resposta correta!";
-    } else {
-        botaoEscolhido.classList.add("incorreta");
-        botoes[perguntaAtual.correta].classList.add("correta");
-        mensagem.textContent =
-            `Resposta incorreta. ${perguntaAtual.explicacao}`;
-    }
-
-
-    setTimeout(proximaPergunta, 1600);
-}
-
-
-// Avança para a próxima pergunta ou apresenta o resultado.
-function proximaPergunta() {
-    atual++;
-
-
-    if (atual < perguntas.length) {
-        mostrarPergunta();
-    } else {
-        mostrarResultado();
+function mostraAlternativas(perguntaAtual) { 
+    for (const alternativa of perguntaAtual.alternativas) {
+        const botaoAlternativa = document.createElement("button");
+        botaoAlternativa.textContent = alternativa.texto;
+  
+        botaoAlternativa.addEventListener("click", () => respostaSelecionada(alternativa));
+        caixaAlternativas.appendChild(botaoAlternativa);
     }
 }
-
-
-// Exibe a pontuação final e uma mensagem de desempenho.
-function mostrarResultado() {
-    quiz.classList.add("oculto");
-    resultado.classList.remove("oculto");
-
-
-    const percentual = Math.round((pontos / perguntas.length) * 100);
-    let avaliacao;
-
-
-    if (percentual >= 80) {
-        avaliacao = "Excelente! Você compreendeu muito bem o tema.";
-    } else if (percentual >= 60) {
-        avaliacao = "Bom trabalho! Revise apenas alguns conceitos.";
-    } else {
-        avaliacao = "Continue estudando e tente novamente.";
-    }
-
-
-    textoResultado.textContent =
-        `Você acertou ${pontos} de ${perguntas.length} perguntas (${percentual}%). ${avaliacao}`;
+function respostaSelecionada(opcaoSelecionada) {
+    historiaFinal += opcaoSelecionada.afirmacao + " ";    atual++;
+    mostraPergunta();
+}
+function mostraResultado() { 
+    caixaPerguntas.textContent = "Sua história final:"; 
+    caixaAlternativas.innerHTML = ""; 
+    resultado.textContent = historiaFinal; 
 }
 
-
-// Reinicia o quiz sem recarregar o arquivo JSON.
-botaoReiniciar.addEventListener("click", () => {
-    atual = 0;
-    pontos = 0;
-    resultado.classList.add("oculto");
-    quiz.classList.remove("oculto");
-    mostrarPergunta();
-});
-
-
-// Inicia a aplicação.
-carregarPerguntas();
-
-
-
+carregarPerguntas(); 
